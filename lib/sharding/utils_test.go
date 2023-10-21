@@ -100,4 +100,22 @@ var _ = Describe("Sharding", func() {
 
 		Expect(sharding.IsShardAMatch(shard, cluster)).To(BeTrue())
 	})
+
+	It("GetShard returns cluster's shard", func() {
+		cluster := &libsveltosv1alpha1.SveltosCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: randomString(),
+				Name:      randomString(),
+			},
+		}
+
+		Expect(sharding.GetShard(cluster)).To(BeEmpty())
+
+		cluster.Annotations = map[string]string{}
+		Expect(sharding.GetShard(cluster)).To(BeEmpty())
+
+		shard := randomString()
+		cluster.Annotations[sharding.ShardAnnotation] = shard
+		Expect(sharding.GetShard(cluster)).To(Equal(shard))
+	})
 })

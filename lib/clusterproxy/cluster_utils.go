@@ -372,7 +372,7 @@ func GetListOfClustersForShardKey(ctx context.Context, c client.Client, shard st
 }
 
 func getMatchingCAPIClusters(ctx context.Context, c client.Client, selector labels.Selector,
-	logger logr.Logger) ([]corev1.ObjectReference, error) {
+	logger logr.Logger) (map[corev1.ObjectReference]string, error) {
 
 	present, err := isCAPIPresent(ctx, c, logger)
 	if err != nil {
@@ -390,7 +390,7 @@ func getMatchingCAPIClusters(ctx context.Context, c client.Client, selector labe
 		return nil, err
 	}
 
-	matching := make([]corev1.ObjectReference, 0)
+	clusterShard := map[corev1.ObjectReference]string{}
 
 	for i := range clusterList.Items {
 		cluster := &clusterList.Items[i]
@@ -402,20 +402,21 @@ func getMatchingCAPIClusters(ctx context.Context, c client.Client, selector labe
 
 		addTypeInformationToObject(c.Scheme(), cluster)
 		if selector.Matches(labels.Set(cluster.Labels)) {
-			matching = append(matching, corev1.ObjectReference{
+			clusterRef := corev1.ObjectReference{
 				Kind:       cluster.Kind,
 				Namespace:  cluster.Namespace,
 				Name:       cluster.Name,
 				APIVersion: cluster.APIVersion,
-			})
+			}
+			clusterShard[clusterRef] = sharding.GetShard(cluster)
 		}
 	}
 
-	return matching, nil
+	return clusterShard, nil
 }
 
 func getMatchingSveltosClusters(ctx context.Context, c client.Client, selector labels.Selector,
-	logger logr.Logger) ([]corev1.ObjectReference, error) {
+	logger logr.Logger) (map[corev1.ObjectReference]string, error) {
 
 	clusterList := &libsveltosv1alpha1.SveltosClusterList{}
 	if err := c.List(ctx, clusterList); err != nil {
@@ -423,7 +424,7 @@ func getMatchingSveltosClusters(ctx context.Context, c client.Client, selector l
 		return nil, err
 	}
 
-	matching := make([]corev1.ObjectReference, 0)
+	clusterShard := map[corev1.ObjectReference]string{}
 
 	for i := range clusterList.Items {
 		cluster := &clusterList.Items[i]
@@ -435,39 +436,41 @@ func getMatchingSveltosClusters(ctx context.Context, c client.Client, selector l
 
 		addTypeInformationToObject(c.Scheme(), cluster)
 		if selector.Matches(labels.Set(cluster.Labels)) {
-			matching = append(matching, corev1.ObjectReference{
+			clusterRef := corev1.ObjectReference{
 				Kind:       cluster.Kind,
 				Namespace:  cluster.Namespace,
 				Name:       cluster.Name,
 				APIVersion: cluster.APIVersion,
-			})
+			}
+			clusterShard[clusterRef] = sharding.GetShard(cluster)
 		}
 	}
 
-	return matching, nil
+	return clusterShard, nil
 }
 
 // GetMatchingClusters returns all Sveltos/CAPI Clusters currently matching selector
+// Returns:
+// - list of matching cluster, with shard each cluster is currently part of
+// - error if any occurs
 func GetMatchingClusters(ctx context.Context, c client.Client, selector labels.Selector,
-	logger logr.Logger) ([]corev1.ObjectReference, error) {
+	logger logr.Logger) (map[corev1.ObjectReference]string, error) {
 
-	matching := make([]corev1.ObjectReference, 0)
-
-	tmpMatching, err := getMatchingCAPIClusters(ctx, c, selector, logger)
+	clusterShard, err := getMatchingCAPIClusters(ctx, c, selector, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	matching = append(matching, tmpMatching...)
-
-	tmpMatching, err = getMatchingSveltosClusters(ctx, c, selector, logger)
+	var tmpClusterShard map[corev1.ObjectReference]string
+	tmpClusterShard, err = getMatchingSveltosClusters(ctx, c, selector, logger)
 	if err != nil {
 		return nil, err
 	}
+	for k := range tmpClusterShard {
+		clusterShard[k] = tmpClusterShard[k]
+	}
 
-	matching = append(matching, tmpMatching...)
-
-	return matching, nil
+	return clusterShard, nil
 }
 
 // isCAPIPresent returns whether clusterAPI CRDs are present.

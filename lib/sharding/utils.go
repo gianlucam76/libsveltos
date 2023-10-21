@@ -62,6 +62,21 @@ func IsShardAMatch(shardKey string, cluster client.Object) bool {
 	return v == shardKey
 }
 
+// GetShard returns shard cluster is part of
+func GetShard(cluster client.Object) string {
+	annotations := cluster.GetAnnotations()
+	if len(annotations) == 0 {
+		return ""
+	}
+
+	v, ok := annotations[ShardAnnotation]
+	if !ok {
+		return ""
+	}
+
+	return v
+}
+
 // When sharding is used, each cluster at any point of time
 // it has none or a shard key.
 // It is sometimes necessary to keep track of cluster shard

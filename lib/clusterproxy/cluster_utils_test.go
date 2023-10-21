@@ -241,11 +241,15 @@ var _ = Describe("Cluster utils", func() {
 			"zone": "west",
 		}
 
+		sveltosClusterShard := randomString()
 		sveltosCluster := &libsveltosv1alpha1.SveltosCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      randomString(),
 				Namespace: randomString(),
 				Labels:    currentLabels,
+				Annotations: map[string]string{
+					sharding.ShardAnnotation: sveltosClusterShard,
+				},
 			},
 		}
 
@@ -257,6 +261,10 @@ var _ = Describe("Cluster utils", func() {
 		}
 
 		cluster.Labels = currentLabels
+		clusterShard := randomString()
+		cluster.Annotations = map[string]string{
+			sharding.ShardAnnotation: clusterShard,
+		}
 
 		initObjects := []client.Object{
 			cluster,
@@ -268,14 +276,13 @@ var _ = Describe("Cluster utils", func() {
 
 		parsedSelector, _ := labels.Parse(string(selector))
 
-		matches, err := clusterproxy.GetMatchingClusters(context.TODO(), c, parsedSelector, klogr.New())
+		clusterShards, err := clusterproxy.GetMatchingClusters(context.TODO(), c, parsedSelector, klogr.New())
 		Expect(err).To(BeNil())
-		Expect(len(matches)).To(Equal(2))
-		Expect(matches).To(ContainElement(
-			corev1.ObjectReference{Namespace: cluster.Namespace, Name: cluster.Name,
-				Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}))
-		Expect(matches).To(ContainElement(
-			corev1.ObjectReference{Namespace: sveltosCluster.Namespace, Name: sveltosCluster.Name,
-				Kind: libsveltosv1alpha1.SveltosClusterKind, APIVersion: libsveltosv1alpha1.GroupVersion.String()}))
+		Expect(len(clusterShards)).To(Equal(2))
+		Expect(clusterShards[corev1.ObjectReference{Namespace: cluster.Namespace, Name: cluster.Name,
+			Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}]).To(Equal(clusterShard))
+		Expect((clusterShards[corev1.ObjectReference{Namespace: sveltosCluster.Namespace, Name: sveltosCluster.Name,
+			Kind: libsveltosv1alpha1.SveltosClusterKind, APIVersion: libsveltosv1alpha1.GroupVersion.String()}])).To(
+			Equal(sveltosClusterShard))
 	})
 })
