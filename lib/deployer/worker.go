@@ -178,7 +178,10 @@ func processRequests(ctx context.Context, d *deployer, i int, logger logr.Logger
 				storeResult(d, params.key, err, params.handlerOptions, params.handler, params.metric, logger)
 				elapsed := time.Since(start)
 				if params.metric != nil {
+					l.Info("MGIANLUC params.metric set")
 					params.metric(elapsed, ns, name, featureID, clusterType, l)
+				} else {
+					l.Info("MGIANLUC params.metric NOT set")
 				}
 			}
 		}
