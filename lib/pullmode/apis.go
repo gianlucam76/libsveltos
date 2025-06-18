@@ -154,6 +154,9 @@ func StageResourcesForDeployment(ctx context.Context, c client.Client,
 	clusterNamespace, clusterName, requestorKind, requestorName, requestorFeature string,
 	resources map[string][]unstructured.Unstructured, skipTracking bool, logger logr.Logger) error {
 
+	logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC StageResourcesForDeployment %s %s",
+		requestorName, requestorFeature))
+
 	// Create all ConfigurationBundles. There one configurationBundle per key.
 	// If Requestor is ClusterSummary each key represents a different ConfigMap/Secret referenced in
 	// policyRef section or a different helm chart in the helmChart section.
@@ -179,6 +182,8 @@ func StageResourcesForDeployment(ctx context.Context, c client.Client,
 func DiscardStagedResourcesForDeployment(ctx context.Context, c client.Client,
 	clusterNamespace, clusterName, requestorKind, requestorName, requestorFeature string,
 	logger logr.Logger) error {
+
+	logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC DiscardStagedResourcesForDeployment"))
 
 	// Get current referenced configurationBundles. All ConfigurationBundles currently not referenced
 	// by ConfigurationGroup will be discarded

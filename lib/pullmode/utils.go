@@ -432,6 +432,8 @@ func deleteStaleConfigurationBundles(ctx context.Context, c client.Client,
 	for i := range currentBundles.Items {
 		currentBundle := &currentBundles.Items[i]
 		if _, ok := bundleMap[currentBundle.Name]; !ok {
+			logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC delete ConfigurationBundle %s",
+				currentBundle.Name))
 			if err := c.Delete(ctx, currentBundle); err != nil {
 				logger.V(logsettings.LogInfo).Info(fmt.Sprintf("failed to delete stale configurationBundle: %v", err))
 				return err
@@ -459,6 +461,9 @@ func getReferencedConfigurationBundles(ctx context.Context, c client.Client,
 	}
 
 	if currentConfigurationGroup != nil {
+		logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC ConfigurationGroup %s getReferencedConfigurationBundles",
+			currentConfigurationGroup.GetName()))
+
 		currentCG := currentConfigurationGroup.(*libsveltosv1beta1.ConfigurationGroup)
 		currentBundles = make([]bundleData, len(currentCG.Spec.ConfigurationItems))
 
