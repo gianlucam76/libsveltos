@@ -34,15 +34,18 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 	currentPolicies map[string]libsveltosv1beta1.Resource, logger logr.Logger) (*libsveltosv1beta1.ResourceReport, error) {
 
 	logger.V(logs.LogVerbose).Info(fmt.Sprintf("considering %s/%s", r.GetNamespace(), r.GetName()))
+	logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC considering %s/%s", r.GetNamespace(), r.GetName()))
 
 	// Verify if this policy was deployed because of a projectsveltos (ReferenceLabelName
 	// is present as label in such a case).
 	if !hasLabel(&r, ReferenceNameLabel, "") {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC resource %s/%s no lable", r.GetNamespace(), r.GetName()))
 		return nil, nil
 	}
 
 	if skipAnnotationKey != "" {
 		if !hasAnnotation(&r, skipAnnotationKey, skipAnnotationValue) {
+			logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC resource %s/%s has annotation", r.GetNamespace(), r.GetName()))
 			return nil, nil
 		}
 	}
@@ -52,6 +55,7 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 	// If this ClusterSummary is the only OwnerReference and it is not deploying this policy anymore,
 	// policy would be withdrawn
 	if isDryRunMode {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC resource %s/%s dry run", r.GetNamespace(), r.GetName()))
 		if canDelete(&r, currentPolicies) && isResourceOwner(&r, profile) &&
 			!leavePolicies {
 
@@ -64,9 +68,12 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 			}
 		}
 	} else if canDelete(&r, currentPolicies) {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC resource %s/%s canDelete", r.GetNamespace(), r.GetName()))
 		logger.V(logs.LogVerbose).Info(fmt.Sprintf("remove owner reference %s/%s", r.GetNamespace(), r.GetName()))
 
 		if isResourceOwner(&r, profile) {
+			logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC resource %s/%s isResourceOwner", r.GetNamespace(), r.GetName()))
+
 			err := handleResourceDelete(ctx, c, &r, leavePolicies, logger)
 			if err != nil {
 				return nil, err
@@ -129,6 +136,9 @@ func handleResourceDelete(ctx context.Context, c client.Client, policy client.Ob
 
 		return c.Update(ctx, policy)
 	}
+
+	logger.V(logs.LogDebug).Info(fmt.Sprintf("MGIANLUC removing resource %s %s/%s",
+		policy.GetObjectKind().GroupVersionKind().Kind, policy.GetNamespace(), policy.GetName()))
 
 	logger.V(logs.LogDebug).Info(fmt.Sprintf("removing resource %s %s/%s",
 		policy.GetObjectKind().GroupVersionKind().Kind, policy.GetNamespace(), policy.GetName()))
