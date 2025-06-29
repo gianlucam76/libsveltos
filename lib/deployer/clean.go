@@ -34,15 +34,18 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 	currentPolicies map[string]libsveltosv1beta1.Resource, logger logr.Logger) (*libsveltosv1beta1.ResourceReport, error) {
 
 	logger.V(logs.LogVerbose).Info(fmt.Sprintf("considering %s/%s", r.GetNamespace(), r.GetName()))
+	logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC considering %s/%s", r.GetNamespace(), r.GetName()))
 
 	// Verify if this policy was deployed because of a projectsveltos (ReferenceLabelName
 	// is present as label in such a case).
 	if !hasLabel(&r, ReferenceNameLabel, "") {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC no labels"))
 		return nil, nil
 	}
 
 	if skipAnnotationKey != "" {
 		if !hasAnnotation(&r, skipAnnotationKey, skipAnnotationValue) {
+			logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC skip annotation"))
 			return nil, nil
 		}
 	}
@@ -64,13 +67,18 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 			}
 		}
 	} else if canDelete(&r, currentPolicies) {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC can delete"))
 		logger.V(logs.LogVerbose).Info(fmt.Sprintf("remove owner reference %s/%s", r.GetNamespace(), r.GetName()))
 
 		if isResourceOwner(&r, profile) {
+			logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC is resource owner"))
 			err := handleResourceDelete(ctx, c, &r, leavePolicies, logger)
 			if err != nil {
+				logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC handle resource delete failed"))
 				return nil, err
 			}
+		} else {
+			logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC not resource owner"))
 		}
 	}
 
@@ -115,6 +123,7 @@ func handleResourceDelete(ctx context.Context, c client.Client, policy client.Ob
 	// If mode is set to LeavePolicies, leave policies in the workload cluster.
 	// Remove all labels added by Sveltos.
 	if leavePolicies {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC leave policy"))
 		l := policy.GetLabels()
 		delete(l, ReferenceKindLabel)
 		delete(l, ReferenceNameLabel)
