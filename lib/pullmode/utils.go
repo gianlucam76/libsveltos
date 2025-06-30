@@ -349,6 +349,7 @@ func markConfigurationGroupForRemoval(ctx context.Context, c client.Client,
 	clusterNamespace, clusterName, requestorKind, requestorName, requestorFeature string,
 	logger logr.Logger, setters ...Option) error {
 
+	logger.V(logsettings.LogInfo).Info("MGIANLUC markConfigurationGroupForRemoval")
 	labels := getConfigurationGroupLabels(clusterName, requestorKind, requestorFeature)
 	name, currentCG, err := getConfigurationGroupName(ctx, c, clusterNamespace, requestorName, labels)
 	if err != nil {
@@ -358,10 +359,13 @@ func markConfigurationGroupForRemoval(ctx context.Context, c client.Client,
 
 	action := libsveltosv1beta1.ActionRemove
 	if currentCG == nil {
+		logger.V(logsettings.LogInfo).Info("MGIANLUC markConfigurationGroupForRemoval create")
+
 		return createConfigurationGroup(ctx, c, clusterNamespace, name, requestorName,
 			nil, labels, action, setters...)
 	}
 
+	logger.V(logsettings.LogInfo).Info("MGIANLUC markConfigurationGroupForRemoval updateConfigurationGroup")
 	return updateConfigurationGroup(ctx, c, clusterNamespace, name, nil, action, logger, setters...)
 }
 
@@ -445,6 +449,9 @@ func updateConfigurationGroup(ctx context.Context, c client.Client, namespace, n
 	}
 
 	currentGroup.Spec = group.Spec
+	logger.V(logsettings.LogInfo).Info("MGIANLUC updateConfigurationGroup update")
+	logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC updateConfigurationGroup update action %s", currentGroup.Spec.Action))
+	logger.V(logsettings.LogInfo).Info(fmt.Sprintf("MGIANLUC updateConfigurationGroup update bundles %v", currentGroup.Spec.ConfigurationItems))
 	return c.Update(ctx, currentGroup)
 }
 
