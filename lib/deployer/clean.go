@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2/textlogger"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	libsveltosv1beta1 "github.com/projectsveltos/libsveltos/api/v1beta1"
@@ -41,11 +42,14 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 		return nil, nil
 	}
 
+	logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC considering %s/%s hasLabel", r.GetNamespace(), r.GetName()))
 	if skipAnnotationKey != "" {
-		if !hasAnnotation(&r, skipAnnotationKey, skipAnnotationValue) {
+		if hasAnnotation(&r, skipAnnotationKey, skipAnnotationValue) {
 			return nil, nil
 		}
 	}
+
+	logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC considering %s/%s no skip annotation", r.GetNamespace(), r.GetName()))
 
 	var resourceReport *libsveltosv1beta1.ResourceReport = nil
 	// If in DryRun do not withdrawn any policy.
@@ -64,6 +68,8 @@ func UndeployStaleResource(ctx context.Context, skipAnnotationKey, skipAnnotatio
 			}
 		}
 	} else if canDelete(&r, currentPolicies) {
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC considering %s/%s can delete", r.GetNamespace(), r.GetName()))
+
 		logger.V(logs.LogVerbose).Info(fmt.Sprintf("remove owner reference %s/%s", r.GetNamespace(), r.GetName()))
 
 		if isResourceOwner(&r, profile) {
@@ -95,6 +101,7 @@ func isResourceOwner(resource *unstructured.Unstructured, profile client.Object)
 // canDelete returns true if a policy can be deleted. For a policy to be deleted:
 // - policy is not part of currentReferencedPolicies
 func canDelete(policy client.Object, currentReferencedPolicies map[string]libsveltosv1beta1.Resource) bool {
+
 	name := GetPolicyInfo(&libsveltosv1beta1.Resource{
 		Kind:      policy.GetObjectKind().GroupVersionKind().Kind,
 		Group:     policy.GetObjectKind().GroupVersionKind().Group,
@@ -103,6 +110,9 @@ func canDelete(policy client.Object, currentReferencedPolicies map[string]libsve
 		Namespace: policy.GetNamespace(),
 	})
 	if _, ok := currentReferencedPolicies[name]; ok {
+		logger := textlogger.NewLogger(textlogger.NewConfig(textlogger.Verbosity(1)))
+		logger.V(logs.LogInfo).Info(fmt.Sprintf("MGIANLUC canDelete %s %d %v", name, len(currentReferencedPolicies), currentReferencedPolicies))
+
 		return false
 	}
 
